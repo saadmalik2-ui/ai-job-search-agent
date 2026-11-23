@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+*.pdf
+*.docx
+*.sqlite
+*.db
+*.log
+credentials/
+executions/
+exports/raw/
+resumes/
+contact-data/
+*.mp4
+*.mov
+.DS_Store
