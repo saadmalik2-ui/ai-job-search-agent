@@ -44,8 +44,18 @@ flowchart TD
 
 1. Run n8n and SearXNG locally (for example, using Docker). Run Ollama on the host and download `qwen3:4b` using `ollama pull qwen3:4b`.
 2. Make the services reachable from n8n. In Docker Desktop on macOS, an example host alias is `host.docker.internal`. Configure the Ollama credential locally and ensure SearXNG supports JSON search output.
-3. Create the result and contact-directory tables described in [the integration notes](docs/setup.md). Keep them private. Import sanitized workflows when available and reselect the locally created credentials, data tables and research subworkflow in n8n.
+3. Create the result and contact-directory tables described in [the integration notes](docs/setup.md). Keep them private. Import the sanitized workflows in the order below and reselect locally created credentials, data tables and the research subworkflow in n8n.
 4. Execute the form trigger, enter an example role, upload a sanitized résumé, and review the execution and dashboard. Never expose a résumé upload form or local dashboard publicly unless access is secured.
+
+## Workflow exports
+
+The following three sanitized n8n exports are included:
+
+1. [Company research](workflows/company-research.json) — import first; configure the local search endpoint.
+2. [Main job search](workflows/main-job-search.json) — import second; reselect the Ollama credentials, imported research workflow, and private data tables.
+3. [Synthetic QA batch](workflows/qa-synthetic-tests.json) — import last; link it to the imported main workflow. The four examples are fictional, with an invented candidate profile.
+
+These exports are intentionally inactive, contain no pinned execution data, and require local configuration before execution. The dashboard renderer is documented in [the integration notes](docs/setup.md); a standalone synthetic [dashboard example](examples/dashboard.html) is included. The original personalized score settings are not distributed.
 
 ## What failed and what I learned
 
