@@ -1,0 +1,90 @@
+{
+  "name": "QA - Four Synthetic Job Tests",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6fd228db-cb32-4c23-aaa4-868ccb12246b",
+      "name": "Run four job tests",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cv = \"Synthetic candidate: two years of customer-facing software experience. Led product demonstrations, supported proofs of concept and documented API integrations. Familiar with REST, JSON, and CRM tools. No confirmed GIS experience or independent enterprise quota or renewal ownership.\";\nconst jobs = [\n  {\n    \"Company Name\": \"Example Software\",\n    \"job_title\": \"Solutions Engineer\",\n    \"contact_focus\": \"solutions_engineering\",\n    \"job_url\": \"\",\n    \"Job Description\": \"Synthetic example. Required: two years of customer-facing software experience, demos, discovery, REST API troubleshooting. Preferred: workflow automation.\"\n  },\n  {\n    \"Company Name\": \"Example Analytics\",\n    \"job_title\": \"Enterprise Account Executive\",\n    \"contact_focus\": \"sales\",\n    \"job_url\": \"\",\n    \"Job Description\": \"Synthetic example. Required: five years of independently owned enterprise software quota and complex sales cycles. Preferred: analytics software.\"\n  },\n  {\n    \"Company Name\": \"Example Services\",\n    \"job_title\": \"Customer Success Manager\",\n    \"contact_focus\": \"general\",\n    \"job_url\": \"\",\n    \"Job Description\": \"Synthetic example. Required: customer communication, onboarding, and CRM skills. Preferred: independent renewal ownership.\"\n  },\n  {\n    \"Company Name\": \"Example Geospatial\",\n    \"job_title\": \"Solutions Engineer GIS\",\n    \"contact_focus\": \"solutions_engineering\",\n    \"job_url\": \"\",\n    \"Job Description\": \"Synthetic example. Required: three years of professional GIS work and customer-facing technical experience. Preferred: technical training.\"\n  }\n];\nreturn jobs.map(j=>({json:{...j,candidate_profile:cv}}));"
+      },
+      "id": "8df295d4-6c9f-478e-867e-f43bcd1c8ad3",
+      "name": "Four synthetic job fixtures",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "AI job search and outreach agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "8d8f05d3-8044-4ee9-b6f3-cb4935832553",
+      "name": "Run main job workflow per item",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Run four job tests": {
+      "main": [
+        [
+          {
+            "node": "Four synthetic job fixtures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Four synthetic job fixtures": {
+      "main": [
+        [
+          {
+            "node": "Run main job workflow per item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false,
+  "pinData": {}
+}
