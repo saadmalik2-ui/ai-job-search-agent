@@ -18,6 +18,17 @@ Create a private `Company Contact Directory` table with string columns `CompanyK
 
 Create a private `Job Search Results` table with string columns `Company`, `JobTitle`, `ContactName`, `ContactTitle`, `SourceURL`, `OutreachDraft`, `OutreachStatus`, and `ApplicationStatus`; use a number column `FitScore`. The dashboard should not display private application metadata.
 
+Create a private `Job Search Outreach Tracker` table (used by the original detailed execution-output branch) with string columns `company`, `job_title`, `recipient`, `contact_role`, `source_url`, `subject`, `draft`, `review_status`, `job_fit_analysis`, and `search_errors`. This table may include private résumé-derived information and must remain local.
+
+## Import order and bindings
+
+1. Import `workflows/company-research.json`. Confirm both HTTP Request nodes use the configured SearXNG JSON endpoint.
+2. Import `workflows/main-job-search.json`. Configure the two Ollama Chat Model credentials (Qwen3 4B); in the Call research workflow node select the imported company-research workflow. Bind Insert row to the detailed tracker, both result-table nodes to Job Search Results, and Look up sourced contacts to Company Contact Directory.
+3. Import `workflows/qa-synthetic-tests.json`. Select the imported main workflow in Run main job workflow per item. The manual and QA inputs use intentionally fictional examples, with no real résumé or job URLs. The search path still makes live requests to the configured search service; do not interpret search results for fictional company names as validated contacts. Use the QA workflow only in a test environment with empty or synthetic tables.
+4. For the dashboard, configure a separate local GET Webhook → Data Table Get rows (Job Search Results) → Code node (dashboard renderer below) → Respond to Webhook node that returns the HTML. The complete separate dashboard workflow was not part of the supplied exports.
+
+All exported workflows are inactive, with credentials and instance-specific references removed, no pinned data, and fresh node IDs. JavaScript syntax, internal connections and intake branches have been checked; a clean-instance n8n import and full integration run still need to be performed after binding local resources.
+
 ## Form fields
 
 - Company Name (required)
