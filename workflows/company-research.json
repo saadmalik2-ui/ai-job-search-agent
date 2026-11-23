@@ -1,0 +1,169 @@
+{
+  "name": "AI Job Research Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "research_request"
+            },
+            {
+              "name": "company_name"
+            },
+            {
+              "name": "contact_focus"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        448
+      ],
+      "id": "e128491e-3978-4415-8cbf-e1ce4ec158bb",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8080/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.company_name + \" company products customers funding\" }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        448
+      ],
+      "id": "667c187e-488c-4936-bbf9-3df8e95ccde6",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8080/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 5000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        448
+      ],
+      "id": "2e7db180-6c88-4d14-bba2-d94c157c3d1e",
+      "name": "Search Company Contacts."
+    },
+    {
+      "parameters": {
+        "jsCode": "const company = $('When Executed by Another Workflow').first().json.company_name;\nconst companySearch = $('HTTP Request').first().json;\nconst requests = $('Code in JavaScript1').all().map(i=>i.json);\nconst responses = $input.all().map(i=>i.json);\nconst clean = x => (Array.isArray(x.results)?x.results:[]).filter(r=>typeof r.url==='string'&&/^https?:\\/\\//i.test(r.url)).map(r=>({title:r.title||'',url:r.url,content:r.content||''}));\nconst companySources=clean(companySearch).slice(0,15);\nconst key=String(company).toLowerCase().replace(/[^a-z0-9]/g,'');\nconst role=/sales|revenue|account executive|solutions engineer|solution consultant|sales engineer|presales|talent acquisition|recruiter|recruiting/i;\nconst rank=r=>{\n const text=r.title+' '+r.content;\n const profile=/^https?:\\/\\/(?:[^/]+\\.)?linkedin\\.com\\/in\\//i.test(r.url);\n const site=r.url.split('/')[2]?.replace(/[^a-z0-9]/gi,'').toLowerCase().includes(key);\n return (profile?8:0)+(site?5:0)+(role.test(r.title)?6:role.test(text)?2:0)+(text.toLowerCase().includes(String(company).toLowerCase())?4:0)-(/linkedin\\.com\\/(?:jobs|company)|\\/careers|job openings/i.test(r.url)?10:0);\n};\nconst queues=responses.map((r,i)=>clean(r).map(s=>({...s,category:requests[i]?.category||'unknown',query:r.query||requests[i]?.query||''})).sort((a,b)=>rank(b)-rank(a)));\nconst seen=new Set(), contactSources=[];\nfor(let p=0;p<15;p++) for(const queue of queues){\n const r=queue[p]; if(!r)continue;\n const dedup=r.url.split('?')[0].replace(/\\/$/,'');\n if(!seen.has(dedup)){seen.add(dedup);contactSources.push(r);}\n}\nconst diagnostics=responses.map((r,i)=>({category:requests[i]?.category||'unknown',query:r.query||requests[i]?.query||'',result_count:clean(r).length,errors:r.unresponsive_engines||[]}));\nreturn [{json:{output:{company,status:contactSources.length?'CONTACT_LEADS_REQUIRE_VERIFICATION':'NO_CONTACT_EVIDENCE',company_sources:companySources,contact_sources:contactSources,company_search_errors:companySearch.unresponsive_engines||[],contact_search_errors:diagnostics.filter(d=>d.errors.length),contact_search_diagnostics:diagnostics,research_summary_unverified:''}}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        448
+      ],
+      "id": "daa497dc-c7a5-45cb-b410-438f1c6895b4",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input=$('When Executed by Another Workflow').first().json;\nconst company=String(input.company_name||'').trim();\nif(!company)throw new Error('company_name is required');\nconst result=$input.first().json;\nif(!(result.results||[]).length&&(result.unresponsive_engines||[]).length)throw new Error('Search providers unavailable; use sourced contact directory until providers recover.');\nconst name='\"'+company.replace(/[\"\\r\\n]/g,'')+'\"';\nconst manager=String(input.research_request||'').match(/(?:Department Leader|Hiring Manager|Reports to)\\s*:\\s*([A-Z][a-z]+(?:[ -][A-Z][a-z]+){1,4})\\s*\\|/i)?.[1];\nconst queries={talent_acquisition:name+' (\"hiring team\" OR \"contact person\" OR recruiter OR \"talent acquisition\") careers jobs',revenue:name+' (\"chief revenue officer\" OR CRO OR \"VP of Sales\" OR \"Head of Sales\") leadership',sales:name+' (\"Director of Sales\" OR \"VP Sales\" OR \"Head of Sales\" OR \"Account Management\") team',solutions_engineering:name+' '+(manager?'\"'+manager+'\" sales engineering':'(\"Director of Solutions Engineering\" OR \"Director of Sales Engineering\" OR \"Head of Solutions Engineering\" OR \"Sales Engineering Manager\")')};\nconst focus=String(input.contact_focus||'general').trim().toLowerCase().replace(/ /g,'_');\nconst categories=focus==='general'?Object.keys(queries):[Object.hasOwn(queries,focus)?focus:'talent_acquisition'];\nreturn categories.map(category=>({json:{category,query:queries[category]}}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        448
+      ],
+      "id": "c27ce6aa-3024-426d-8687-997c04316c2e",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Company Contacts.": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Search Company Contacts.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false,
+  "pinData": {}
+}
